@@ -14,6 +14,8 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from apps.users.models import User
 
 from .models import PasswordResetToken
+from core.email import EmailService
+from resend.exceptions import ResendError
 
 logger = logging.getLogger("authentication")
 
@@ -113,11 +115,25 @@ def send_password_setup_link(password_reset_token):
     frontend_url = settings.FRONTEND_URL
 
     link = f"{frontend_url}/set-password" f"?token={password_reset_token.token}"
+    try:
+        EmailService.send_email(
+        to_email=password_reset_token.user.email,
+        subject="Set new password",
+         html=f"""
+    <h2>Password Reset</h2>
 
-    print("\n" + "=" * 60)
-    print("PASSWORD SETUP LINK")
-    print(link)
-    print("=" * 60 + "\n")
+    <p>Click the button below to reset your password.</p>
+
+    <a href="{link}">
+        Reset Password
+    </a>
+    """,
+    )
+    except ResendError:
+        logger.exception("Failed to send password setup email")
+        raise ValidationError(
+            "Unable to send the password setup email. Please try again"
+        )
 
 
 def login_user(request, email, password):
@@ -144,13 +160,14 @@ def login_user(request, email, password):
     logger.info("Successful login for user_id=%s", user.id)
     return {"user": user, "access": str(refresh.access_token), "refresh": str(refresh)}
 
-
 def logout_user(refresh_token):
     """
     Blacklist a refresh token.
     """
+
     try:
         token = RefreshToken(refresh_token)
         token.blacklist()
     except TokenError:
         raise ValidationError("The refresh token is invalid or has already expired.")
+

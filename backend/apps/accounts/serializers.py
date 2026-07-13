@@ -42,4 +42,6 @@ class LoginSerializer(serializers.Serializer):
 
 
 class LogoutSerializer(serializers.Serializer):
+    """Serializer to validate the refresh token submitted during logout."""
+
     refresh = serializers.CharField()

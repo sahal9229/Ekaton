@@ -4,6 +4,17 @@ from .models import User
 
 
 class UserSerializer(serializers.ModelSerializer):
+    """Serializer for user details."""
+
     class Meta:
         model = User
-        fields = ["id", "email", "full_name"]
+        fields = [
+            "id",
+            "full_name",
+            "email",
+            "batch",
+            "gender",
+            "profile_photo",
+            "is_available",
+            "is_verified",
+        ]

@@ -1,13 +1,15 @@
+from rest_framework.exceptions import AuthenticationFailed
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.views import APIView
+
 from apps.users.serializers import UserSerializer
-from core.permissions import IsStudent
 from core.responses import error_response, success_response
 from core.throttles import (
     CheckEmailRateThrottle,
     LoginRateThrottle,
+    LogoutRateThrottle,
     SetPasswordRateThrottle,
 )
-from rest_framework.exceptions import AuthenticationFailed
-from rest_framework.views import APIView
 
 from .serializers import (
     CheckEmailSerializer,
@@ -123,13 +125,31 @@ class LoginAPIView(APIView):
         )
 
 
-class LogoutAPIview(APIView):
-    permission_classes = [IsStudent]
+class LogoutAPIView(APIView):
+    """API endpoint to log out an authenticated user by blacklisting their refresh token."""
+
+    permission_classes = [IsAuthenticated]
+    throttle_classes = [LogoutRateThrottle]
 
     def post(self, request):
+        """Handles the POST request to invalidate the provided refresh token."""
         serializer = LogoutSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
         logout_user(refresh_token=serializer.validated_data["refresh"])
 
         return success_response(message="Logged out successfully")
+
+
+class MeAPIView(APIView):
+    """API endpoint to retrieve the authenticated user's profile."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        """Handle GET request for the current user's profile."""
+
+        return success_response(
+            message="Profile retrieved successfully.",
+            data=UserSerializer(request.user).data,
+        )

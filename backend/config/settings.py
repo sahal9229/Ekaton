@@ -72,6 +72,7 @@ REST_FRAMEWORK = {
         "user": "1000/hour",
         "login": "5/min",
         "check_email": "5/min",
+        "logout": "20/hour",
         "set_password": "10/hour",
     },
 }
@@ -103,7 +104,7 @@ LOGGING = {
 
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=30),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
 }
 
 FRONTEND_URL = env("FRONTEND_URL")

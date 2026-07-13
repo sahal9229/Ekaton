@@ -2,14 +2,16 @@ import logging
 from datetime import timedelta
 from secrets import token_urlsafe
 
-from apps.users.models import User
 from django.conf import settings
 from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
 from django.db import transaction
 from django.utils import timezone
 from rest_framework.exceptions import AuthenticationFailed, ValidationError
+from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
+
+from apps.users.models import User
 
 from .models import PasswordResetToken
 
@@ -21,7 +23,7 @@ def get_email_status(email):
     Retrieves the verification status of a user by their email address.
     """
 
-    user = User.objects.only("is_verified").filter(email=email).first()
+    user = User.objects.filter(email=email).first()
 
     if user is None:
         return None
@@ -147,6 +149,8 @@ def logout_user(refresh_token):
     """
     Blacklist a refresh token.
     """
-
-    token = RefreshToken(refresh_token)
-    token.blacklist()
+    try:
+        token = RefreshToken(refresh_token)
+        token.blacklist()
+    except TokenError:
+        raise ValidationError("The refresh token is invalid or has already expired.")

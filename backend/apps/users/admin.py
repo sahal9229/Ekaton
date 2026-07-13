@@ -6,6 +6,13 @@ from .models import User
 
 @admin.register(User)
 class CustomUserAdmin(UserAdmin):
+    """Admin configuration for the custom User model.
+
+    Extends Django's built-in UserAdmin to support email-based
+    authentication and expose custom fields such as batch, gender,
+    profile photo, and verification status.
+    """
+
     model = User
 
     list_display = ("email", "full_name", "is_staff", "is_active", "is_verified")

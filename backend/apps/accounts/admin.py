@@ -1,10 +1,10 @@
 from django.contrib import admin
 
-from .models import PasswordResetToken
+from .models import AccountSetupToken,PasswordResetToken
 
 
-@admin.register(PasswordResetToken)
-class PasswordResetTokenAdmin(admin.ModelAdmin):
+@admin.register(AccountSetupToken)
+class AccountSetupTokenAdmin(admin.ModelAdmin):
     """Admin configuration for the PasswordResetToken model.
 
     Displays token status, expiry, and creation time for each record
@@ -17,3 +17,16 @@ class PasswordResetTokenAdmin(admin.ModelAdmin):
         "expires_at",
         "created_at",
     )
+
+@admin.register(PasswordResetToken)
+class PasswordResetTokenAdmin(admin.ModelAdmin):
+    """Admin configuration for password reset tokens."""
+
+    list_display = (
+        "user",
+        "used",
+        "expires_at",
+        "created_at",
+    )
+    
+    

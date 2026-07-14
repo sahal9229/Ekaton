@@ -75,6 +75,9 @@ REST_FRAMEWORK = {
         "check_email": "5/min",
         "logout": "20/hour",
         "set_password": "10/hour",
+        "forget_password": "5/hour",
+        "reset_password": "10/hour",
+        "resend_password_reset": "3/hour",
     },
 }
 
@@ -109,7 +112,7 @@ SIMPLE_JWT = {
 }
 
 
-#Authentication timer Settings
+# Authentication timer Settings
 ACCOUNT_SETUP_TOKEN_LIFETIME = timedelta(minutes=30)
 
 PASSWORD_RESET_TOKEN_LIFETIME = timedelta(minutes=30)

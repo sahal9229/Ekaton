@@ -4,7 +4,6 @@ from apps.users.models import User
 from core.base_model import BaseModel
 
 
-
 class BaseToken(BaseModel):
     """
     Abstract base model for one-time secure tokens.
@@ -24,7 +23,6 @@ class BaseToken(BaseModel):
 
     class Meta:
         abstract = True
-
 
 
 class AccountSetupToken(BaseToken):

@@ -19,7 +19,7 @@ def end_private_chat_room(room):
     room.status = PrivateChatRoom.Status.ENDED
     room.closed_at = timezone.now()
 
-    room.save(updated_fileds=["status", "closed_at"])
+    room.save(update_fields=["status", "closed_at"])
 
 
 def get_private_chat_room(room_id):

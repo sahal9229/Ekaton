@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "rest_framework_simplejwt.token_blacklist",
+    "rest_framework",
     # Local apps
     "apps.accounts",
     "apps.users",
@@ -76,6 +77,10 @@ REST_FRAMEWORK = {
         "check_email": "5/min",
         "logout": "20/hour",
         "set_password": "10/hour",
+        "forget_password": "5/hour",
+        "reset_password": "10/hour",
+        "resend_password_reset": "3/hour",
+        "change_password": "5/hour",
     },
 }
 
@@ -108,6 +113,12 @@ SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
 }
+
+
+# Authentication timer Settings
+ACCOUNT_SETUP_TOKEN_LIFETIME = timedelta(minutes=30)
+
+PASSWORD_RESET_TOKEN_LIFETIME = timedelta(minutes=30)
 
 FRONTEND_URL = env("FRONTEND_URL")
 

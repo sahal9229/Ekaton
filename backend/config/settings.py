@@ -32,6 +32,7 @@ environ.Env.read_env(BASE_DIR / ".env")
 SECRET_KEY = env("SECRET_KEY")
 RESEND_API_KEY = env("RESEND_API_KEY")
 DEFAULT_FROM_EMAIL = "Ekaton <onboarding@resend.dev>"
+REDIS_URL = env("REDIS_URL")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env("DEBUG")
 
@@ -48,6 +49,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "rest_framework_simplejwt.token_blacklist",
+    "rest_framework",
     # Local apps
     "apps.accounts",
     "apps.users",

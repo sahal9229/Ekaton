@@ -10,17 +10,18 @@ from apps.users.models import User
 
 @database_sync_to_async
 def get_user(user_id):
+    """Return the authenticated user for the given ID."""
     return User.objects.filter(id=user_id).first()
 
 class JwtAuthMiddleware:
     def __init__(self,inner):
         self.inner = inner
 
-    async def __call__(self, scope, receiver, send):
+    async def __call__(self, scope, receive, send):
         query_string = scope["query_string"].decode()
         query_params = parse_qs(query_string)
 
-        token = query_params.get("token",[None][0])
+        token = query_params.get("token", [None])[0]
 
         scope["user"] = AnonymousUser()
 
@@ -32,7 +33,7 @@ class JwtAuthMiddleware:
                 if user:
                     scope["user"] = user
 
-            except TokenError:
+            except (TokenError,KeyError):
                 pass
 
         return await self.inner(scope,receive, send)

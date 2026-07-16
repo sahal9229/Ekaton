@@ -2,8 +2,6 @@ import logging
 from datetime import timedelta
 from secrets import token_urlsafe
 
-from apps.users.models import User
-from core.email import EmailService
 from django.conf import settings
 from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
@@ -14,6 +12,9 @@ from resend.exceptions import ResendError
 from rest_framework.exceptions import AuthenticationFailed, ValidationError
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
+
+from apps.users.models import User
+from core.email import EmailService
 
 from .models import AccountSetupToken, PasswordResetToken
 

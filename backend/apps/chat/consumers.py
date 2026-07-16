@@ -1,12 +1,19 @@
 import json
+import logging
 
 from asgiref.sync import sync_to_async
 from channels.generic.websocket import AsyncWebsocketConsumer
 from rest_framework.exceptions import ValidationError
 
+logger = logging.getLogger("chat")
+
 from .services import (
     create_private_message,
+    create_reveal_request,
+    end_private_chat_room,
+    get_pending_reveal_request,
     get_private_chat_room,
+    respond_to_reveal_request,
 )
 
 
@@ -17,6 +24,11 @@ class ChatConsumer(AsyncWebsocketConsumer):
         """Accept a WebSocket connection for an authorized chat participant."""
 
         user = self.scope["user"]
+
+        if user.is_anonymous:
+            await self.close(code=4001)
+            return
+
         room_id = self.scope["url_route"]["kwargs"]["room_id"]
 
         room = await sync_to_async(get_private_chat_room)(
@@ -38,6 +50,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         )
 
         await self.accept()
+        logger.info("User %s connected to room %s", user.id, self.room_id)
 
     async def disconnect(self, close_code):
         """Remove the socket from the chat group."""
@@ -46,6 +59,12 @@ class ChatConsumer(AsyncWebsocketConsumer):
             await self.channel_layer.group_discard(
                 self.room_group_name,
                 self.channel_name,
+            )
+            logger.info(
+                "User %s disconnected from room %s (code=%s)",
+                self.scope["user"].id,
+                self.room_id,
+                close_code,
             )
 
     # FIX 1: The entire body of receive() was unindented, placing it at module
@@ -89,6 +108,9 @@ class ChatConsumer(AsyncWebsocketConsumer):
         handlers = {
             "chat_message": self.handle_chat_message,
             "typing": self.handle_typing,
+            "reveal_request": self.handle_reveal_request,
+            "reveal_response": self.handle_reveal_response,
+            "skip_chat": self.handle_skip_chat,
         }
 
         handler = handlers.get(event_type)
@@ -147,9 +169,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             return
 
         try:
-            private_message = await sync_to_async(
-                create_private_message
-            )(
+            private_message = await sync_to_async(create_private_message)(
                 room=self.room,
                 sender=self.scope["user"],
                 message=message,
@@ -160,7 +180,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 text_data=json.dumps(
                     {
                         "type": "error",
-                        "message": exc.messages[0],
+                        "message": str(exc.detail[0]),
                     }
                 )
             )
@@ -218,3 +238,180 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 }
             )
         )
+
+    async def handle_reveal_request(self, data):
+        requester = self.scope["user"]
+        if self.room.user_one == requester:
+
+            receiver = self.room.user_two
+        else:
+            receiver = self.room.user_one
+
+        try:
+            await sync_to_async(create_reveal_request)(
+                room=self.room, requester=requester, receiver=receiver
+            )
+        except ValidationError as exc:
+            await self.send(
+                text_data=json.dumps(
+                    {
+                        "type": "error",
+                        "message": str(exc.detail[0]),
+                    }
+                )
+            )
+            return
+        await self.channel_layer.group_send(
+            self.room_group_name,
+            {"type": "reveal_request", "requester_id": str(requester.id)},
+        )
+
+    async def reveal_request(self, event):
+        """Send reveal request event to participants."""
+        if str(self.scope["user"].id) == str(event["requester_id"]):
+            await self.send(
+                text_data=json.dumps(
+                    {
+                        "type": "reveal_request_sent",
+                        "message": "Waiting for the other user to respond.",
+                    }
+                )
+            )
+        else:
+            await self.send(
+                text_data=json.dumps(
+                    {
+                        "type": "reveal_request_received",
+                        "message": "The other user wants to reveal their identity.",
+                    }
+                )
+            )
+
+    async def handle_reveal_response(self, data):
+        """Handle a reveal request response."""
+
+        status = data.get("status")
+
+        if status not in ("accepted", "rejected"):
+            await self.send(
+                text_data=json.dumps(
+                    {
+                        "type": "error",
+                        "message": "Invalid reveal response.",
+                    }
+                )
+            )
+            return
+
+        reveal_request = await sync_to_async(get_pending_reveal_request)(
+            room=self.room,
+            receiver=self.scope["user"],
+        )
+
+        if reveal_request is None:
+            await self.send(
+                text_data=json.dumps(
+                    {
+                        "type": "error",
+                        "message": "No pending reveal request found.",
+                    }
+                )
+            )
+            return
+
+        try:
+            reveal_request = await sync_to_async(respond_to_reveal_request)(
+                reveal_request=reveal_request,
+                receiver=self.scope["user"],
+                status=status,
+            )
+        except ValidationError as exc:
+            await self.send(
+                text_data=json.dumps(
+                    {
+                        "type": "error",
+                        "message": str(exc.detail[0]),
+                    }
+                )
+            )
+            return
+
+        if status == "accepted":
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    "type": "reveal_success",
+                },
+            )
+        else:
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    "type": "reveal_rejected",
+                },
+            )
+
+    async def reveal_success(self, event):
+        """Send reveal success event to participants."""
+        if self.scope["user"].id == self.room.user_one.id:
+            other_user = self.room.user_two
+        else:
+            other_user = self.room.user_one
+
+        await self.send(
+            text_data=json.dumps(
+                {
+                    "type": "reveal_success",
+                    "message": "Identity reveal accepted.",
+                    "user": {
+                        "id": str(other_user.id),
+                        "full_name": other_user.full_name,
+                        "email": other_user.email,
+                        "profile_photo": (
+                            other_user.profile_photo
+                            if other_user.profile_photo
+                            else None
+                        ),
+                    },
+                }
+            )
+        )
+
+    async def reveal_rejected(self, event):
+        """Send reveal rejected event to participants."""
+        await self.send(
+            text_data=json.dumps(
+                {
+                    "type": "reveal_rejected",
+                    "message": "Reveal request was rejected.",
+                }
+            )
+        )
+
+    async def handle_skip_chat(self, data):
+        await sync_to_async(end_private_chat_room)(self.room)
+
+        await self.channel_layer.group_send(
+            self.room_group_name, {"type": "chat_skipped"}
+        )
+
+    async def chat_skipped(self, event):
+        await self.send(
+            text_data=json.dumps(
+                {"type": "chat_skipped", "message": "Chat skipped successfully"}
+            )
+        )
+
+        await self.close()
+
+    async def chat_ended(self, event):
+        """Send chat ended event and close the connection."""
+        await self.send(
+            text_data=json.dumps(
+                {
+                    "type": "chat_ended",
+                    "message": "The chat has been ended.",
+                }
+            )
+        )
+        await self.close()

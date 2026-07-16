@@ -36,7 +36,7 @@ REDIS_URL = env("REDIS_URL")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env("DEBUG")
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["127.0.0.1", "localhost"])
 
 ACCOUNT_SETUP_TOKEN_LIFETIME = timedelta(minutes=30)
 
@@ -47,6 +47,7 @@ PASSWORD_RESET_TOKEN_LIFETIME = timedelta(minutes=30)
 INSTALLED_APPS = [
     "daphne",
     "channels",
+    "corsheaders",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -86,6 +87,7 @@ REST_FRAMEWORK = {
         "reset_password": "10/hour",
         "resend_password_reset": "3/hour",
         "change_password": "5/hour",
+        "start_chat": "5/min",
     },
 }
 
@@ -107,6 +109,11 @@ LOGGING = {
     },
     "loggers": {
         "authentication": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "chat": {
             "handlers": ["console"],
             "level": "INFO",
             "propagate": False,
@@ -134,6 +141,7 @@ CHANNEL_LAYERS = {
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -174,6 +182,7 @@ DATABASES = {
         "PASSWORD": env("DB_PASSWORD"),
         "HOST": env("DB_HOST"),
         "PORT": env("DB_PORT"),
+        "CONN_MAX_AGE": 60,
     }
 }
 
@@ -213,3 +222,9 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = "static/"
+
+CORS_ALLOW_ALL_ORIGINS = False
+CORS_ALLOWED_ORIGINS = env.list(
+    "CORS_ALLOWED_ORIGINS", default=["http://localhost:5173", "http://127.0.0.1:5173"]
+)
+CORS_ALLOW_CREDENTIALS = True

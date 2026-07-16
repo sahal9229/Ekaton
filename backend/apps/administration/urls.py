@@ -1,3 +1,5 @@
-app_name = "administration"
-
-urlpatterns = []
+from django.urls import path
+from .views import AdminLoginAPIView
+urlpatterns = [
+    path("login/", AdminLoginAPIView.as_view(), name="admin-login")
+]

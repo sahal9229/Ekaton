@@ -367,6 +367,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                         "id": str(other_user.id),
                         "full_name": other_user.full_name,
                         "email": other_user.email,
+                        "batch": other_user.batch,
                         "profile_photo": (
                             other_user.profile_photo
                             if other_user.profile_photo

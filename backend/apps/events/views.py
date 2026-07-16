@@ -7,8 +7,24 @@ from .serializers import (CreateEventSerializer, EventDetailSerializer,
                           EventParticipantSerializer, EventSerializer,
                           JoinEventSerializer, LeaveEventSerializer,
                           UpdateEventSerializer)
-from .services import (cancel_event, create_event, get_event, join_event,
-                       leave_event, list_events, update_event)
+from .services import (
+    cancel_event,
+    create_event,
+    get_event,
+    join_event,
+    leave_event,
+    list_events,
+    update_event,
+)
+from .docs import (
+    create_event_doc,
+    list_events_doc,
+    event_detail_doc,
+    update_event_doc,
+    cancel_event_doc,
+    join_event_doc,
+    leave_event_doc,
+)
 
 
 class CreateEventAPIView(APIView):
@@ -18,6 +34,7 @@ class CreateEventAPIView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @create_event_doc
     def post(self, request):
         """
         Create a new event.
@@ -46,6 +63,7 @@ class EventListAPIView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @list_events_doc
     def get(self, request):
         """
         Return all active events.
@@ -71,6 +89,7 @@ class EventDetailAPIView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @event_detail_doc
     def get(self, request, pk):
 
         event = get_event(event_id=pk)
@@ -90,6 +109,7 @@ class UpdateEventAPIView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @update_event_doc
     def patch(self, request, pk):
         """
         Update an event owned by the authenticated user.
@@ -121,6 +141,7 @@ class CancelEventAPIView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @cancel_event_doc
     def delete(self, request, pk):
         """
         Cancel an event owned by the authenticated user.
@@ -144,6 +165,7 @@ class JoinEventAPIView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @join_event_doc
     def post(self, request, pk):
         """
         Add the authenticated user as a participant
@@ -184,6 +206,7 @@ class LeaveEventAPIView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @leave_event_doc
     def post(self, request, pk):
         """
         Leave an active event.

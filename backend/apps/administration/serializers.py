@@ -1,5 +1,6 @@
 from rest_framework import serializers
 
+from apps.chat.models import Report
 from apps.users.models import User
 
 
@@ -46,3 +47,33 @@ class AdminCreateUserSerializer(serializers.Serializer):
     email = serializers.EmailField()
     batch = serializers.CharField(max_length=100)
     gender = serializers.ChoiceField(choices=User.Gender.choices)
+
+
+class AdminreportUserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ["id", "full_name", "email"]
+
+
+class AdminReportSerializer(serializers.ModelSerializer):
+    reporter = AdminreportUserSerializer(read_only=True)
+    reported_user = AdminreportUserSerializer(read_only=True)
+
+    class Meta:
+        model = Report
+        fields = [
+            "room",
+            "reporter",
+            "reported_user",
+            "reason",
+            "description",
+            "evidence_url",
+            "status",
+            "created_at",
+            "updated_at",
+        ]
+
+
+class AdminUpdateReportStatusSerializer(serializers.Serializer):
+
+    status = serializers.ChoiceField(choices=Report.Status.choices)

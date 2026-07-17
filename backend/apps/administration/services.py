@@ -68,6 +68,21 @@ def total_chats_count():
     return PrivateChatRoom.objects.count()
 
 
+def total_report_count():
+    """Return the total number of reports in the system."""
+    return Report.objects.count()
+
+
+def total_resolved_report_count():
+    """Return the total number of reports with a RESOLVED status."""
+    return Report.objects.filter(status=Report.Status.RESOLVED).count()
+
+
+def total_pending_report_count():
+    """Return the total number of reports with a PENDING status."""
+    return Report.objects.filter(status=Report.Status.PENDING).count()
+
+
 def total_messages_count():
     """Returns an approximate count of total messages for extreme performance.
 
@@ -183,3 +198,92 @@ def admin_create_user(full_name, email, batch, gender):
         )
     except IntegrityError:
         raise ValidationError({"email": "A user with this email already exists."})
+
+
+def get_reports(
+    search=None,
+    status=None,
+    batch=None,
+    gender=None,
+    reason=None,
+    reporter_id=None,
+    reported_user_id=None,
+    start_date=None,
+    end_date=None,
+):
+    """
+    Retrieve and filter a list of reports from the database.
+
+    Supports advanced filtering and search using Q objects for efficient lookup.
+    Includes related objects (reporter, reported_user, room) to avoid N+1 queries.
+    """
+    queryset = Report.objects.select_related(
+        "reporter",
+        "reported_user",
+        "room",
+    ).order_by("-created_at")
+
+    if search:
+        queryset = queryset.filter(
+            Q(reported_user__full_name__icontains=search)
+            | Q(reported_user__email__icontains=search)
+            | Q(reporter__full_name__icontains=search)
+            | Q(reporter__email__icontains=search)
+            | Q(reason__icontains=search)
+            | Q(description__icontains=search)
+        )
+
+    if status:
+        queryset = queryset.filter(status=status)
+
+    if batch:
+        queryset = queryset.filter(reported_user__batch=batch)
+
+    if gender:
+        queryset = queryset.filter(reported_user__gender=gender)
+
+    if reason:
+        queryset = queryset.filter(reason=reason)
+
+    if reporter_id:
+        queryset = queryset.filter(reporter_id=reporter_id)
+
+    if reported_user_id:
+        queryset = queryset.filter(reported_user_id=reported_user_id)
+
+    if start_date:
+        queryset = queryset.filter(created_at__gte=start_date)
+
+    if end_date:
+        queryset = queryset.filter(created_at__lte=end_date)
+
+    stats = {
+        "reports_count": total_report_count(),
+        "reports_resolved_count": total_resolved_report_count(),
+        "reports_pending_count": total_pending_report_count(),
+    }
+
+    return queryset, stats
+
+
+def update_report_status(report_id, status):
+    """
+    Update the moderation status of a report.
+
+    Args:
+        report_id (UUID): The primary key of the target report.
+        status (str): The new status value. Must be a valid Report.Status choice.
+                      Incoming value is validated by the serializer before this call.
+
+    Returns:
+        Report: The updated report instance.
+
+    Raises:
+        Http404: If no report with the given report_id exists.
+    """
+    report = get_object_or_404(Report, id=report_id)
+
+    report.status = status
+    report.save(update_fields=["status"])
+
+    return report

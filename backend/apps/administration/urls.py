@@ -3,6 +3,7 @@ from django.urls import path
 from .views import (
     AdminDashboardAPIView,
     AdminLoginAPIView,
+    AdminReportAPIView,
     AdminUpdateUserAPIView,
     AdminUsersAPIView,
 )
@@ -15,5 +16,11 @@ urlpatterns = [
         "users/<uuid:user_id>/",
         AdminUpdateUserAPIView.as_view(),
         name="admin-update-user",
+    ),
+    path("reports/", AdminReportAPIView.as_view(), name="admin-reports"),
+    path(
+        "reports/<uuid:report_id>/",
+        AdminReportAPIView.as_view(),
+        name="admin-update-report",
     ),
 ]

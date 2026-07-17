@@ -18,6 +18,8 @@ from apps.users.serializers import UserSerializer
 from .serializers import (
     AdminCreateUserSerializer,
     AdminLoginSerializer,
+    AdminReportSerializer,
+    AdminUpdateReportStatusSerializer,
     AdminUserSerializer,
     AdminUserUpdateSerializer,
 )
@@ -371,5 +373,166 @@ admin_users_list_doc = extend_schema(
         ),
         401: OpenApiResponse(description="Unauthorized - Not authenticated."),
         403: OpenApiResponse(description="Forbidden - User is not an admin."),
+    },
+)
+
+# ---------------------------------------------------------------------------
+# Admin Report List
+# Endpoint : GET /admin/reports/
+
+admin_reports_list_doc = extend_schema(
+    tags=["Administration"],
+    summary="Admin Report List",
+    description="""
+    Retrieve a paginated list of all reports, with advanced filtering and search.
+    
+    **Purpose**: Provides the report management table data for the admin dashboard.
+    **Authentication requirement**: Admin only (IsAdminUser).
+    """,
+    parameters=[
+        OpenApiParameter(
+            name="search",
+            description="Search by reported user or reporter name/email, reason, or description.",
+            required=False,
+            type=OpenApiTypes.STR,
+        ),
+        OpenApiParameter(
+            name="status",
+            description="Filter by report status ('pending', 'reviewed', 'resolved')",
+            required=False,
+            type=OpenApiTypes.STR,
+        ),
+        OpenApiParameter(
+            name="batch",
+            description="Filter by the reported user's batch",
+            required=False,
+            type=OpenApiTypes.STR,
+        ),
+        OpenApiParameter(
+            name="gender",
+            description="Filter by the reported user's gender ('male' or 'female')",
+            required=False,
+            type=OpenApiTypes.STR,
+        ),
+        OpenApiParameter(
+            name="reason",
+            description="Filter by report reason",
+            required=False,
+            type=OpenApiTypes.STR,
+        ),
+        OpenApiParameter(
+            name="reporter_id",
+            description="Filter by reporter's UUID",
+            required=False,
+            type=OpenApiTypes.UUID,
+        ),
+        OpenApiParameter(
+            name="reported_user_id",
+            description="Filter by reported user's UUID",
+            required=False,
+            type=OpenApiTypes.UUID,
+        ),
+        OpenApiParameter(
+            name="start_date",
+            description="Filter by reports created on or after this date (ISO 8601)",
+            required=False,
+            type=OpenApiTypes.DATETIME,
+        ),
+        OpenApiParameter(
+            name="end_date",
+            description="Filter by reports created on or before this date (ISO 8601)",
+            required=False,
+            type=OpenApiTypes.DATETIME,
+        ),
+    ],
+    responses={
+        200: OpenApiResponse(
+            response=inline_serializer(
+                name="AdminReportListResponse",
+                fields={
+                    "message": rf_serializers.CharField(),
+                    "data": inline_serializer(
+                        name="PaginatedReports",
+                        fields={
+                            "count": rf_serializers.IntegerField(),
+                            "next": rf_serializers.URLField(allow_null=True),
+                            "previous": rf_serializers.URLField(allow_null=True),
+                            "results": AdminReportSerializer(many=True),
+                        },
+                    ),
+                },
+            ),
+            description="Report fetched successfully.",
+        ),
+        401: OpenApiResponse(description="Unauthorized - Not authenticated."),
+        403: OpenApiResponse(description="Forbidden - User is not an admin."),
+    },
+)
+
+# ---------------------------------------------------------------------------
+# Admin Update Report Status
+# Endpoint : PATCH /admin/reports/<uuid:report_id>/
+
+admin_update_report_status_doc = extend_schema(
+    tags=["Administration"],
+    summary="Admin Update Report Status",
+    description="""
+    Allow an administrator to update the moderation status of a report.
+
+    **Purpose**: Enables admins to process the report moderation queue by moving
+    reports through the defined workflow: pending → reviewed → resolved.
+    **Authentication requirement**: Admin only (IsAdminUser).
+
+    ### Path Parameter
+    * `report_id` (UUID): The unique identifier of the report to update.
+
+    ### Request Fields
+    * `status` (str): The new moderation status. One of: `pending`, `reviewed`, `resolved`.
+    """,
+    request=AdminUpdateReportStatusSerializer,
+    responses={
+        200: OpenApiResponse(
+            response=inline_serializer(
+                name="AdminUpdateReportStatusResponse",
+                fields={
+                    "message": rf_serializers.CharField(),
+                    "data": AdminReportSerializer(),
+                },
+            ),
+            description="Report status updated successfully.",
+            examples=[
+                OpenApiExample(
+                    "Success",
+                    value={
+                        "message": "report updated successfully",
+                        "data": {
+                            "room": "123e4567-e89b-12d3-a456-426614174000",
+                            "reporter": {
+                                "id": "...",
+                                "full_name": "Jane Doe",
+                                "email": "jane@example.com",
+                            },
+                            "reported_user": {
+                                "id": "...",
+                                "full_name": "John Doe",
+                                "email": "john@example.com",
+                            },
+                            "reason": "harassment",
+                            "description": "Sent offensive messages.",
+                            "evidence_url": None,
+                            "status": "resolved",
+                            "created_at": "2024-01-01T12:00:00Z",
+                            "updated_at": "2024-01-02T09:00:00Z",
+                        },
+                    },
+                )
+            ],
+        ),
+        400: OpenApiResponse(
+            description="Bad Request - Invalid or missing status value."
+        ),
+        401: OpenApiResponse(description="Unauthorized - Not authenticated."),
+        403: OpenApiResponse(description="Forbidden - User is not an admin."),
+        404: OpenApiResponse(description="Not Found - Report does not exist."),
     },
 )

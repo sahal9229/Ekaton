@@ -1,7 +1,7 @@
 from django.utils import timezone
 from rest_framework import serializers
 
-from .models import Event, EventParticipant,EventMessage
+from .models import Event, EventMessage, EventParticipant
 
 
 class CreateEventSerializer(serializers.ModelSerializer):
@@ -94,6 +94,7 @@ class EventParticipantSerializer(serializers.ModelSerializer):
 
         return obj.user.full_name
 
+
 class EventSerializer(serializers.ModelSerializer):
     """
     Serializer used to represent an event.
@@ -164,24 +165,27 @@ class LeaveEventSerializer(serializers.Serializer):
 
     pass
 
+
 class EventMessageCreateSerializer(serializers.Serializer):
     """
     Validate incoming event chat messages.
     """
-    content=serializers.CharField(max_length=2000,
-        trim_whitespace=True,)
-    
-    def validate_content(self,value:str):
+
+    content = serializers.CharField(
+        max_length=2000,
+        trim_whitespace=True,
+    )
+
+    def validate_content(self, value: str):
         """
         Ensure the message is not empty after trimming whitespace.
         """
-        value=value.strip()
+        value = value.strip()
         if not value:
-            raise serializers.ValidationError(
-                "Message content cannot be empty."
-            )
+            raise serializers.ValidationError("Message content cannot be empty.")
 
         return value
+
 
 class EventMessageSerializer(serializers.ModelSerializer):
     sender_name = serializers.SerializerMethodField()
@@ -196,13 +200,7 @@ class EventMessageSerializer(serializers.ModelSerializer):
         )
 
     def get_sender_name(self, obj):
-        """
-        Return the appropriate display name based on
-        the event type.
-        """
-
-        if obj.event.is_anonymous:
-            return obj.participant.anonymous_name
+        if obj.event.is_anonymous_chat:
+            return obj.participant.anonymous_name.display_name
 
         return obj.participant.user.full_name
-        

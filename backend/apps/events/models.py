@@ -183,8 +183,8 @@ class EventParticipant(BaseModel):
 
     def __str__(self):
         return f"{self.event.name} - {self.user.full_name}"
-    
-    
+
+
 class EventMessage(BaseModel):
     """
     Represents a single text message sent by a participant

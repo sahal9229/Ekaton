@@ -1,16 +1,32 @@
+from django.shortcuts import get_object_or_404
+from rest_framework.generics import GenericAPIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 
 from core.responses import success_response
-from django.shortcuts import get_object_or_404
-from rest_framework.generics import GenericAPIView
-from .models import Event, EventParticipant, EventMessage
 
-from .serializers import (CreateEventSerializer, EventDetailSerializer,
-                          EventParticipantSerializer, EventSerializer,
-                          JoinEventSerializer, LeaveEventSerializer,
-                          UpdateEventSerializer,EventMessageCreateSerializer,
-                          EventMessageSerializer)
+from .docs import (
+    cancel_event_doc,
+    create_event_doc,
+    event_detail_doc,
+    join_event_doc,
+    leave_event_doc,
+    list_events_doc,
+    update_event_doc,
+)
+from .models import Event, EventMessage, EventParticipant
+from .pagination import EventMessageCursorPagination
+from .serializers import (
+    CreateEventSerializer,
+    EventDetailSerializer,
+    EventMessageCreateSerializer,
+    EventMessageSerializer,
+    EventParticipantSerializer,
+    EventSerializer,
+    JoinEventSerializer,
+    LeaveEventSerializer,
+    UpdateEventSerializer,
+)
 from .services import (
     cancel_event,
     create_event,
@@ -18,17 +34,8 @@ from .services import (
     join_event,
     leave_event,
     list_events,
+    send_event_message,
     update_event,
-    send_event_message
-)
-from .docs import (
-    create_event_doc,
-    list_events_doc,
-    event_detail_doc,
-    update_event_doc,
-    cancel_event_doc,
-    join_event_doc,
-    leave_event_doc,
 )
 
 
@@ -235,61 +242,81 @@ class LeaveEventAPIView(APIView):
             data=response_serializer.data,
         )
 
+
 class EventMessageAPIView(GenericAPIView):
     """
     API for retrieving and sending event chat messages.
     """
-    permission_classes=[IsAuthenticated]
-    
+
+    permission_classes = [IsAuthenticated]
+    pagination_class = EventMessageCursorPagination
+
     def get_serializer_class(self):
         """
         Return the serializer class based on the request method.
         """
         if self.request.method == "POST":
-            
+
             return EventMessageCreateSerializer
-        
+
         return EventMessageSerializer
-    
+
     def get_event(self):
         """
         Return the requested event.
         """
         return get_object_or_404(
-    Event,
-    pk=self.kwargs["event_id"],
-)
-    
-    def get_participant(self,event):
+            Event,
+            pk=self.kwargs["event_id"],
+        )
+
+    def get_participant(self, event):
         """
         Return the authenticated user's participant record.
         """
-        return get_object_or_404(EventParticipant,event=event,user=self.request.user)
-    
-    def get_messages(self,event):
+        return get_object_or_404(
+            EventParticipant,
+            event=event,
+            user=self.request.user,
+            is_active=True,
+        )
+
+    def get_messages(self, event):
         """
         Return all messages for the given event.
         """
-        return (EventMessage.objects.filter(event=event).select_related("participant","participant__user").order_by("created_at"))
-    
-    def get(self,request,*args,**kwargs):
+        return (
+            EventMessage.objects.filter(event=event)
+            .select_related(
+                "event",
+                "participant__user",
+                "participant__anonymous_name",
+            )
+            .order_by("-created_at")
+        )
+
+    def get(self, request, *args, **kwargs):
         """
         Retrieve all messages for an event.
         """
-        event=self.get_event()
-        
+        event = self.get_event()
+
         # Ensure the authenticated user is a participant.
         self.get_participant(event)
-        
-        messages=self.get_messages(event)
-        
-        serializer=self.get_serializer(messages,many=True)
-        
+
+        messages = self.get_messages(event)
+        page = self.paginate_queryset(messages)
+
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(messages, many=True)
         return success_response(
             data=serializer.data,
             message="Messages retrieved successfully.",
         )
-        
+
     def post(self, request, *args, **kwargs):
         """
         Send a message to an event.
@@ -314,6 +341,3 @@ class EventMessageAPIView(GenericAPIView):
             data=response_serializer.data,
             status_code=201,
         )
-        
-        
-        

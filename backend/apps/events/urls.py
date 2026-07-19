@@ -1,8 +1,15 @@
 from django.urls import path
 
-from .views import (CancelEventAPIView, CreateEventAPIView, EventDetailAPIView,
-                    EventListAPIView, JoinEventAPIView, LeaveEventAPIView,
-                    UpdateEventAPIView)
+from .views import (
+    CancelEventAPIView,
+    CreateEventAPIView,
+    EventDetailAPIView,
+    EventListAPIView,
+    EventMessageAPIView,
+    JoinEventAPIView,
+    LeaveEventAPIView,
+    UpdateEventAPIView,
+)
 
 urlpatterns = [
     path(
@@ -20,4 +27,9 @@ urlpatterns = [
     path("<uuid:pk>/cancel/", CancelEventAPIView.as_view(), name="event-cancel"),
     path("<uuid:pk>/join/", JoinEventAPIView.as_view(), name="event-join"),
     path("<uuid:pk>/leave/", LeaveEventAPIView.as_view(), name="event-leave"),
+    path(
+        "<uuid:event_id>/messages/",
+        EventMessageAPIView.as_view(),
+        name="event-messages",
+    ),
 ]

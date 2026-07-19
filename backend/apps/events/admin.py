@@ -1,10 +1,6 @@
 from django.contrib import admin
 
-from .models import (
-    AnonymousName,
-    Event,
-    EventParticipant,
-)
+from .models import AnonymousName, Event, EventParticipant
 
 
 @admin.register(AnonymousName)
@@ -22,13 +18,9 @@ class AnonymousNameAdmin(admin.ModelAdmin):
         "updated_at",
     )
 
-    search_fields = (
-        "display_name",
-    )
+    search_fields = ("display_name",)
 
-    ordering = (
-        "display_name",
-    )
+    ordering = ("display_name",)
 
     readonly_fields = (
         "created_at",
@@ -69,13 +61,9 @@ class EventAdmin(admin.ModelAdmin):
         "venue",
     )
 
-    autocomplete_fields = (
-        "owner",
-    )
+    autocomplete_fields = ("owner",)
 
-    ordering = (
-        "-created_at",
-    )
+    ordering = ("-created_at",)
 
     readonly_fields = (
         "anonymous_seed",
@@ -121,9 +109,7 @@ class EventParticipantAdmin(admin.ModelAdmin):
         "anonymous_name",
     )
 
-    ordering = (
-        "-joined_at",
-    )
+    ordering = ("-joined_at",)
 
     readonly_fields = (
         "joined_at",

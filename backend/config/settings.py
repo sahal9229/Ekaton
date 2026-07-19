@@ -33,6 +33,7 @@ SECRET_KEY = env("SECRET_KEY")
 RESEND_API_KEY = env("RESEND_API_KEY")
 DEFAULT_FROM_EMAIL = "Ekaton <onboarding@resend.dev>"
 REDIS_URL = env("REDIS_URL")
+MESSAGE_ENCRYPTION_KEY = env("MESSAGE_ENCRYPTION_KEY")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env("DEBUG")
 
@@ -91,6 +92,8 @@ REST_FRAMEWORK = {
         "change_password": "5/hour",
         "start_chat": "5/min",
         "report": "5/m",
+        "admin_login": "5/m",
+        "admin_dashboard": "5/m",
     },
 }
 

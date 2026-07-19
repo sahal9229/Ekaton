@@ -16,7 +16,7 @@ from .docs import (
     list_events_doc,
     update_event_doc,
     list_event_messages_doc,
-    send_event_message_doc,
+    send_event_message_doc
 )
 from .models import Event, EventMessage, EventParticipant
 from .pagination import EventMessageCursorPagination

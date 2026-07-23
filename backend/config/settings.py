@@ -94,8 +94,11 @@ REST_FRAMEWORK = {
         "change_password": "5/hour",
         "start_chat": "5/min",
         "report": "5/m",
+        "complaint_create": "10/hour",
         "admin_login": "5/m",
         "admin_dashboard": "5/m",
+        "comment_create": "20/hour",
+        "upvote_toggle": "60/hour",
     },
 }
 

@@ -13,6 +13,32 @@ from .serializers import (CreateCommentSerializer, CreateComplaintSerializer,
                           GetCommentSerializer, GetComplaintsSerializer,
                           UpdateComplaintSerializer)
 
+complaint_detail_doc = extend_schema(
+    tags=["Complaints"],
+    summary="Get Complaint Details",
+    description="""
+    Retrieve the details of a single complaint.
+
+    **Purpose**: Display a specific complaint.
+    **Authentication requirement**: Bearer Authentication (JWT required).
+    """,
+    responses={
+        200: OpenApiResponse(
+            response=inline_serializer(
+                name="ComplaintDetailResponse",
+                fields={
+                    "success": rf_serializers.BooleanField(default=True),
+                    "message": rf_serializers.CharField(default="Complaint fetched successfully."),
+                    "data": GetComplaintsSerializer(),
+                },
+            ),
+            description="Complaint retrieved successfully.",
+        ),
+        401: OpenApiResponse(description="Unauthorized - Missing or invalid access token."),
+        404: OpenApiResponse(description="Not Found - Complaint does not exist."),
+    },
+)
+
 # ---------------------------------------------------------------------------
 # List Complaints
 # Endpoint : GET /complaints/

@@ -97,6 +97,8 @@ REST_FRAMEWORK = {
         "complaint_create": "10/hour",
         "admin_login": "5/m",
         "admin_dashboard": "5/m",
+        "comment_create": "20/hour",
+        "upvote_toggle": "60/hour",
     },
 }
 

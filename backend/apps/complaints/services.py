@@ -21,11 +21,28 @@ def create_complaint(user, title, description, category, is_anonymous):
     return complaint
 
 
+from django.db.models import Count, Subquery, OuterRef
+from django.db.models.functions import Coalesce
+
 def get_complaints():
+    comments_subquery = ComplaintComment.objects.filter(
+        complaint=OuterRef("pk")
+    ).values("complaint").annotate(c=Count("id")).values("c")
+
+    upvotes_subquery = ComplaintUpvote.objects.filter(
+        complaint=OuterRef("pk")
+    ).values("complaint").annotate(c=Count("id")).values("c")
+
     return Complaint.objects.select_related("user").annotate(
-        comment_count=Count("comments", distinct=True),
-        upvote_count=Count("upvotes", distinct=True),
+        comment_count=Coalesce(Subquery(comments_subquery), 0),
+        upvote_count=Coalesce(Subquery(upvotes_subquery), 0),
     )
+
+def get_complaint(complaint_id):
+    try:
+        return get_complaints().get(id=complaint_id)
+    except Complaint.DoesNotExist:
+        raise Http404("No Complaint matches the given query.")
 
 def can_modify_complaint(user, complaint):
     if complaint.user !=user:

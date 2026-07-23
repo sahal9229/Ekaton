@@ -4,7 +4,11 @@ from rest_framework.views import APIView
 from core.pagination import DefaultPagination
 from .pagination import CommentCursorPagination
 from core.responses import success_response
-from core.throttles import ComplaintCreateRateThrottle
+from core.throttles import (
+    ComplaintCreateRateThrottle,
+    CommentCreateRateThrottle,
+    UpvoteToggleRateThrottle,
+)
 
 from .serializers import (
     CreateCommentSerializer,
@@ -18,6 +22,7 @@ from .services import (
     create_complaint,
     get_comments,
     get_complaints,
+    get_complaint,
     toggle_upvote,
     update_complaint,
     delete_complaint
@@ -29,6 +34,7 @@ from .docs import (
     complaint_delete_doc,
     complaint_list_doc,
     complaint_update_doc,
+    complaint_detail_doc,
     upvote_toggle_doc,
 )
 
@@ -95,6 +101,16 @@ class ComplaintAPIView(APIView):
 
 class ComplaintDetailAPIView(APIView):
     permission_classes = [IsAuthenticated]
+
+    @complaint_detail_doc
+    def get(self, request, complaint_id):
+        complaint = get_complaint(complaint_id)
+        serializer = GetComplaintsSerializer(complaint)
+        return success_response(
+            message="Complaint fetched successfully.",
+            data=serializer.data
+        )
+
     @complaint_update_doc
     def patch(self, request,complaint_id):
         serializer = UpdateComplaintSerializer(data=request.data, partial=True)
@@ -125,6 +141,11 @@ class ComplaintDetailAPIView(APIView):
 
 class ComplaintCommentAPIView(APIView):
     permission_classes = [IsAuthenticated]
+
+    def get_throttles(self):
+        if self.request.method == "POST":
+            return [CommentCreateRateThrottle()]
+        return super().get_throttles()
 
     @comment_list_doc
     def get(self, request, complaint_id):
@@ -174,8 +195,12 @@ class ComplaintCommentAPIView(APIView):
 
 
 class ComplaintUpvoteAPIView(APIView):
-
     permission_classes = [IsAuthenticated]
+
+    def get_throttles(self):
+        if self.request.method == "POST":
+            return [UpvoteToggleRateThrottle()]
+        return super().get_throttles()
 
     @upvote_toggle_doc
     def post(self, request, complaint_id):
